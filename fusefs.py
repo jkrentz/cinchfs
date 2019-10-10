@@ -74,8 +74,17 @@ def create(path, mode, fi=None):
     return os.open(path, os.O_WRONLY | os.O_CREAT, mode)
 
 def read(path, length, offset, fh):
-    os.lseek(fh, offset, os.SEEK_SET)
-    return os.read(fh, length)
+    try:
+        os.lseek(fh, offset, os.SEEK_SET)
+        return os.read(fh, length)
+    except Exception:
+        # sometimes read receives a bad fh
+        # this seems like a fuse bug
+        fh = os.open(path, os.O_RDONLY)
+        os.lseek(fh, offset, os.SEEK_SET)
+        res = os.read(fh, length)
+        os.close(fh)
+        return res
 
 def write(path, buf, offset, fh):
     os.lseek(fh, offset, os.SEEK_SET)
